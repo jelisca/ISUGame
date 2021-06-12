@@ -6,7 +6,6 @@
 import pygame
 import sys
 import time
-from pygame.locals import *
 
 LENGTH = 2000
 HEIGHT = 1000
@@ -30,13 +29,44 @@ SCORE = 0
 #TODO: Working Score System and Labeling
 
 
-class AproachingObj(pygame.sprite.Sprite):
+class ArrowNote(pygame.sprite.Sprite):
+
+    def __init__(self, note_attrs, game_start_time):
+        self.velocity = note_attrs['velocity']
+        self.radius   = note_attrs['radius']
+        self.color    = note_attrs['color']
+        self.delay    = note_attrs['delay']
+        self.gst      = game_start_time
+
+        super().__init__()
+
+        self.image = pygame.Surface([self.radius*2, self.radius*2])
+        self.rect  = self.image.get_rect()
+        self.image.fill('white')
+        self.image.set_colorkey('white')
+        pygame.draw.circle(self.image, self.color, self.rect.center, self.radius)
+        self.pos   = self.rect.center
+
+    def can_deploy(self):
+        if time.time() - self.gst >= self.delay:
+            return True
+        else:
+            return False
+
+    def move(self):
+        self.rect.move_ip([self.velocity, 0])
+        self.pos = self.rect.center
+        SCREEN.blit(self.image, self.rect)
+        #  print(self.pos)
+
+
+class Blah:
 
     miss = False
     lock = True
     killed = False
 
-    def __init__(self, vel, rad, colour, start, delay_time):
+    def ___init__(self, vel, rad, colour, start, delay_time):
         self.vel = vel
         self.rad = rad
         self.colour = colour
@@ -59,19 +89,11 @@ class AproachingObj(pygame.sprite.Sprite):
         self.pos = self.rect.center
         SCREEN.blit(self.image, self.rect)
 
-    def deploy_check(self, starttime):
-        tick = time.time()
-        if tick - starttime >= self.delay_time:
-            return True
-        else:
-            return False
-
     def key_check(self):
         if self.miss == False:
             if self.lock == False:
                 events = pygame.event.get()
                 for event in events:
-                    #print(event[K_a], event[K_s])
                     if event.type == pygame.KEYDOWN:
                         print(self.colour)
                         print(self.killed)
@@ -134,59 +156,48 @@ class PlayerWheel(pygame.sprite.Sprite):
         SCREEN.blit(self.image, self.rect)
 
 
-def init_stream():
-    song_ls = []
+default_note_attrs = {'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': 0}
 
-    p1_aprobj1 = AproachingObj(10, WHEEL_RADIUS / 3, 'red', LEFT, 0)
-    p1_aprobj2 = AproachingObj(-10, WHEEL_RADIUS / 3, 'blue', RIGHT, 2)
-    p1_aprobj3 = AproachingObj(10, WHEEL_RADIUS / 3, 'green', LEFT, 3)
-    p1_aprobj4 = AproachingObj(10, WHEEL_RADIUS / 3, 'purple', LEFT, 5)
-    p1_aprobj5 = AproachingObj(-10, WHEEL_RADIUS / 3, 'orange', RIGHT, 6)
-    p1_aprobj6 = AproachingObj(-10, WHEEL_RADIUS / 3, 'grey', RIGHT, 6.5)
+class NotesQueue:
 
-    song_ls = [p1_aprobj1, p1_aprobj2, p1_aprobj3, p1_aprobj4, p1_aprobj6]
+    def __init__(self):
+        self.notes_queue = []
+        #  self.start_time  = time.time()
 
-    return song_ls
+    def put_note(self, note):
+        #  note = ArrowNote(default_note_attrs, self.start_time)
+        if note.can_deploy():
+            self.notes_queue.append(note)
 
+    def get_note(self):
+        pass
 
-def generate_object(start_time, delay):
-    if start_time - delay < 0:
-        return AproachingObj(10, WHEEL_RADIUS / 3, 'red', LEFT, delay)
+    def move_notes(self):
+        print(len(self.notes_queue))
+        for note in self.notes_queue:
+            note.move()
 
-
-
-
-def play(starttime, tot_objects):
-
-    for aprobject in tot_objects:
-        index = tot_objects.index(aprobject)
-
-        deployed_objs = sorted([ob for ob in tot_objects if ob.deploy_check(starttime) and not ob.killed], key=lambda x: x.delay_time)
-
-        try:
-            killable = min([(ob.colour, abs(ob.pos[0] - LENGTH / 2)) for ob in deployed_objs], key=lambda x: x[1])
-            if aprobject.colour == killable[0]:
-                aprobject.lock = False
-        except ValueError:
-            pass
-
-
-
-        aprobject.update(starttime)
 
 def main():
     #starting time of game
     start_time = time.time()
 
+    nq = NotesQueue()
+    note = ArrowNote(default_note_attrs, start_time)
+    nq.put_note(note)
+    default_note_attrs.update({'velocity': 2, 'delay': 3, 'color': 'green'})
+    note = ArrowNote(default_note_attrs, start_time)
+
     # initializes display mode
     pygame.init()
 
-    song_objects = init_stream()
-    p1 = PlayerWheel()
+    target = PlayerWheel()
 
-    delays = range(10)
     # game loop
     while True:
+
+        nq.put_note(note)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -194,8 +205,8 @@ def main():
 
         SCREEN.fill('white')
 
-        p1.update()
-        play(start_time, song_objects)
+        nq.move_notes()
+        target.update()
 
         pygame.display.update()
 
