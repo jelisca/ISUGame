@@ -6,6 +6,7 @@
 import pygame
 import sys
 import time
+import random
 
 LENGTH = 2000
 HEIGHT = 1000
@@ -45,7 +46,10 @@ class ArrowNote(pygame.sprite.Sprite):
         self.image.fill('white')
         self.image.set_colorkey('white')
         pygame.draw.circle(self.image, self.color, self.rect.center, self.radius)
-        self.pos   = self.rect.center
+        if self.velocity > 0:
+            self.pos = self.rect.center = LEFT
+        else:
+            self.pos = self.rect.center = RIGHT
 
     def can_deploy(self):
         if time.time() - self.gst >= self.delay:
@@ -58,6 +62,28 @@ class ArrowNote(pygame.sprite.Sprite):
         self.pos = self.rect.center
         SCREEN.blit(self.image, self.rect)
         #  print(self.pos)
+
+    def border_check(self):
+        if self.start == RIGHT:
+            if self.pos[0] <= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
+                return False
+            else:
+                return True
+        elif self.start == LEFT:
+            if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
+                return False
+            else:
+                return True
+
+    def kill(self):
+        # check ball velocity to determine key to use for killing
+        # after killing, reset self.gst
+        pass
+
+    def update(self):
+        # after killed OR border crossed, move note back to original position, and set with new delay
+        pass
+
 
 
 class Blah:
@@ -158,35 +184,41 @@ class PlayerWheel(pygame.sprite.Sprite):
 
 default_note_attrs = {'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': 0}
 
-class NotesQueue:
 
-    def __init__(self):
-        self.notes_queue = []
-        #  self.start_time  = time.time()
+#  class NotesQueue:
 
-    def put_note(self, note):
-        #  note = ArrowNote(default_note_attrs, self.start_time)
-        if note.can_deploy():
-            self.notes_queue.append(note)
+#      def __init__(self):
+#          self.notes_queue = []
+#          #  self.start_time  = time.time()
 
-    def get_note(self):
-        pass
+#      def put_note(self, note):
+#          #  note = ArrowNote(default_note_attrs, self.start_time)
+#          if note.can_deploy():
+#              self.notes_queue.append(note)
 
-    def move_notes(self):
-        print(len(self.notes_queue))
-        for note in self.notes_queue:
-            note.move()
+#      def remove_note(self):
+#          self.notes_queue.pop(0)
+
+#      def move_notes(self):
+#          print(len(self.notes_queue))
+#          for note in self.notes_queue:
+#              note.move()
 
 
 def main():
     #starting time of game
     start_time = time.time()
 
-    nq = NotesQueue()
-    note = ArrowNote(default_note_attrs, start_time)
-    nq.put_note(note)
-    default_note_attrs.update({'velocity': 2, 'delay': 3, 'color': 'green'})
-    note = ArrowNote(default_note_attrs, start_time)
+    #  nq = NotesQueue()
+    #  note_gen = generate_notes(10000, start_time)
+
+    #  note = ArrowNote(default_note_attrs, start_time)
+    #  nq.put_note(note)
+    #  default_note_attrs.update({'velocity': 1, 'delay': 2, 'color': 'green'})
+    #  note = ArrowNote(default_note_attrs, start_time)
+
+    left_note  = ArrowNote({'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)}, start_time)
+    right_note = ArrowNote({'velocity': -10, 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)}, start_time)
 
     # initializes display mode
     pygame.init()
@@ -195,8 +227,7 @@ def main():
 
     # game loop
     while True:
-
-        nq.put_note(note)
+        #  note = yield next(note_gen)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -204,9 +235,13 @@ def main():
                 sys.exit()
 
         SCREEN.fill('white')
-
-        nq.move_notes()
         target.update()
+
+        if left_note.can_deploy():
+            left_note.move()
+        if right_note.can_deploy():
+            right_note.move()
+        #  nq.move_notes()
 
         pygame.display.update()
 
