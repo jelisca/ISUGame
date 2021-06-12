@@ -61,29 +61,50 @@ class ArrowNote(pygame.sprite.Sprite):
         self.rect.move_ip([self.velocity, 0])
         self.pos = self.rect.center
         SCREEN.blit(self.image, self.rect)
-        #  print(self.pos)
 
     def border_check(self):
-        if self.start == RIGHT:
+        if self.velocity < 0:
             if self.pos[0] <= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
                 return False
             else:
                 return True
-        elif self.start == LEFT:
+        elif self.velocity > 0:
             if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
                 return False
             else:
                 return True
 
+    def key_is_pressed(self):
+        key_state = pygame.key.get_pressed()
+        if self.velocity > 0:
+            if key_state[pygame.K_a]:
+                return True
+            else:
+                return False
+        else:
+            if key_state[pygame.K_s]:
+                return True
+            else:
+                return False
+
     def kill(self):
         # check ball velocity to determine key to use for killing
         # after killing, reset self.gst
-        pass
+        if self.velocity > 0:
+            self.rect.center = LEFT
+            self.delay = random.randint(0, 3)
+            self.gst = time.time()
+        else:
+            self.rect.center = RIGHT
+            self.delay = random.randint(0, 3)
+            self.gst = time.time()
 
     def update(self):
         # after killed OR border crossed, move note back to original position, and set with new delay
-        pass
-
+        if self.border_check() and not self.key_is_pressed():
+            self.move()
+        else:
+            self.kill()
 
 
 class Blah:
@@ -229,6 +250,7 @@ def main():
     while True:
         #  note = yield next(note_gen)
 
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -238,10 +260,13 @@ def main():
         target.update()
 
         if left_note.can_deploy():
-            left_note.move()
+            # left_note.move()
+            left_note.update()
         if right_note.can_deploy():
-            right_note.move()
+            # right_note.move()
+            right_note.update()
         #  nq.move_notes()
+
 
         pygame.display.update()
 
