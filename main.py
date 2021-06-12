@@ -106,8 +106,6 @@ class AproachingObj(pygame.sprite.Sprite):
     def update(self, starttime):
         if self.deploy_check(starttime) and not self.killed:
             if self.border_check() and not self.key_check():
-                #self.lock = False
-                #print(self.lock, self.killed)
                 self.move()
             else:
                 if self.can_kill(starttime):
@@ -132,11 +130,6 @@ class PlayerWheel(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, 'pink', self.rect.center, WHEEL_RADIUS)
         self.rect.center = self.pos
 
-        #TODO: fix center line and inner circle
-       # pygame.draw.line(SCREEN, 'black', [self.pos[0], self.pos[1] - WHEEL_RADIUS],
-       #                  [self.pos[0], self.pos[1] + WHEEL_RADIUS], 8)
-       # pygame.draw.circle(SCREEN, 'white', self.pos, WHEEL_RADIUS / 3)
-
     def update(self):
         SCREEN.blit(self.image, self.rect)
 
@@ -152,12 +145,6 @@ def init_stream():
     p1_aprobj6 = AproachingObj(-10, WHEEL_RADIUS / 3, 'grey', RIGHT, 6.5)
 
     song_ls = [p1_aprobj1, p1_aprobj2, p1_aprobj3, p1_aprobj4, p1_aprobj6]
-    # song_ls.append(p1_aprobj1)
-    # song_ls.append(p1_aprobj2)
-    # song_ls.append(p1_aprobj3)
-    # song_ls.append(p1_aprobj4)
-    # song_ls.append(p1_aprobj5)
-    # song_ls.append(p1_aprobj6)
 
     return song_ls
 
@@ -173,7 +160,6 @@ def play(starttime, tot_objects):
 
     for aprobject in tot_objects:
         index = tot_objects.index(aprobject)
-        #pre_index = tot_objects[index - 1].killed
 
         deployed_objs = sorted([ob for ob in tot_objects if ob.deploy_check(starttime) and not ob.killed], key=lambda x: x.delay_time)
 
@@ -186,36 +172,7 @@ def play(starttime, tot_objects):
 
 
 
-        #print([ob.delay_time for ob in deployed_objs])
-        #for ob in deployed_objs:
-        #    if aprobject.lock = False
-        # try:
-        #     deployed_objs[0].lock = False
-        #     #break
-        # except IndexError:
-        #     pass
-
-
-
-        # if index == 0:
-        #     if aprobject.killed == False:
-        #         aprobject.lock = False
-        #     else:
-        #         aprobject.lock = True
-        #
-        # elif index > 0:
-        #     if pre_index:
-        #         if aprobject.killed == False:
-        #             aprobject.lock = False
-        #         else:
-        #             aprobject.lock = True
-
         aprobject.update(starttime)
-
-        # print(index, aprobject.colour)
-        # print(aprobject.killed)
-        # print(pre_index)
-
 
 def main():
     #starting time of game
@@ -230,12 +187,6 @@ def main():
     delays = range(10)
     # game loop
     while True:
-
-        #delay += 1
-
-        #deployed_objs = sorted([ob for ob in song_objects if ob.deploy_check(start_time) and not ob.killed], key=lambda x: x.delay_time)
-        #song_object = generate_object(delay)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -245,11 +196,11 @@ def main():
 
         p1.update()
         play(start_time, song_objects)
-        #song_object.update(start_time)
 
         pygame.display.update()
 
         FramePerSecond.tick(FPS)
 
 
-main()
+if __name__ == '__main__':
+    main()
