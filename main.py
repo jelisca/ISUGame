@@ -23,6 +23,7 @@ FramePerSecond = pygame.time.Clock()
 
 SCREEN = pygame.display.set_mode([LENGTH, HEIGHT])
 pygame.display.set_caption("Play")
+
 score_font = pygame.font.SysFont("arial", 40)
 go_font = pygame.font.SysFont("arial", 200)
 
@@ -145,12 +146,53 @@ class PlayerWheel(pygame.sprite.Sprite):
     def update(self):
         SCREEN.blit(self.image, self.rect)
 
+class MenuButton():
+    pressed = False
 
-default_note_attrs = {'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': 0}
+    def __init__(self, button_attrs):
+        self.position = button_attrs['pos']
+        self.text = button_attrs['txt']
+        self.color = button_attrs['color']
+
+        self.font = pygame.font.SysFont("arial", 100)
+
+        self.button_text = self.font.render(self.text, True, 'white', self.color)
+        self.button_display = self.button_text.get_rect()
+        self.button_display.center = self.position
+        #
+        # pygame.sprite.Sprite.__init__(self)
+        # self.font = pygame.font.SysFont("arial", 70)
+        # self.textsurf = self.font.render(self.text, 1, self.color)
+        # self.image = pygame.Surface((LENGTH/5, HEIGHT/5))
+        # self.textrect = self.textsurf.get_rect(center=self.image.get_rect().center)
+        # self.image.blit(self.textsurf, self.textrect)
+        # # self.image.blit(self.textSurf, [self.position[0]/2 - self.W/2, self.position[1].H/2 - self.H/2])
+
+
+        # self.rect = self.image.get_rect()
+        # self.image.fill('white')
+        # self.image.set_colorkey('white')
+        # pygame.draw.rect(self.image, self.color, self.rect.center, WHEEL_RADIUS)
+        # self.rect.center = self.position
+
+
+    def is_clicked(self):
+        if not self.pressed:
+            x, y = pygame.mouse.get_pos()
+            if pygame.mouse.get_pressed()[0]:
+                if self.position[0] - 50 < x < self.position[0] + 50 and self.position[1] - 30 < y < self.position[1] + 30:
+                    self.pressed = True
+
+    def update(self):
+        if not self.pressed:
+            SCREEN.blit(self.button_text, self.button_display)
 
 
 def main():
     game_time = time.time()
+
+    start_button = MenuButton({'pos': [LENGTH/2, HEIGHT/2], 'txt': 'START', 'color': 'black'})
+    howto_button = MenuButton({'pos': [LENGTH/2, HEIGHT/4], 'txt': 'HOW TO PLAY', 'color': 'blue'})
 
     left_note  = ArrowNote({'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)})
     right_note = ArrowNote({'velocity': -10, 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)})
@@ -164,34 +206,55 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-        print([left_note.miss, right_note.miss])
 
-        if not left_note.miss and not right_note.miss:
-            score_display = score_font.render('Score: ' + str(left_note.score + right_note.score), True, 'white', 'black')
-            score_rect = score_display.get_rect()
-            score_rect.center = (LENGTH / 2, HEIGHT / 8)
+        SCREEN.fill('white')
 
+        start_button.update()
+        start_button.is_clicked()
+
+        howto_button.update()
+        howto_button.is_clicked()
+
+        if start_button.pressed:
             SCREEN.fill('white')
-            SCREEN.blit(score_display, score_rect)
-            target.update()
 
-            if left_note.can_deploy():
-                left_note.update()
-                left_note.speed_rate(game_time)
+            if not left_note.miss and not right_note.miss:
+                score_display = score_font.render('Score: ' + str(left_note.score + right_note.score), True, 'white', 'black')
+                score_rect = score_display.get_rect()
+                score_rect.center = (LENGTH / 2, HEIGHT / 8)
 
-            if right_note.can_deploy():
-                right_note.update()
-                right_note.speed_rate(game_time)
-        else:
-            game_over = go_font.render('GAMEOVER', True, 'white', 'black')
-            game_over_display = game_over.get_rect()
-            game_over_display.center = (LENGTH / 2, HEIGHT / 2)
-            SCREEN.blit(game_over, game_over_display)
+                SCREEN.blit(score_display, score_rect)
+                target.update()
+
+                if left_note.can_deploy():
+                    left_note.update()
+                    left_note.speed_rate(game_time)
+
+                if right_note.can_deploy():
+                    right_note.update()
+                    right_note.speed_rate(game_time)
+            else:
+                game_over = go_font.render('GAMEOVER', True, 'white', 'black')
+                game_over_display = game_over.get_rect()
+                game_over_display.center = (LENGTH / 2, HEIGHT / 2)
+                SCREEN.blit(game_over, game_over_display)
+                SCREEN.blit(score_display, score_rect)
+
+                back_button = MenuButton({'pos': [LENGTH / 2, HEIGHT * 3 / 4], 'txt': 'BACK', 'color': 'RED'})
+                back_button.update()
+                back_button.is_clicked()
+
+                if back_button.pressed:
+                    start_button.pressed = False
+                    howto_button.pressed = False
+
+                    left_note.miss = False
+                    right_note.miss = False
+
 
         pygame.display.update()
 
         FramePerSecond.tick(FPS)
-
 
 
 if __name__ == '__main__':
