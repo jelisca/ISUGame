@@ -23,22 +23,20 @@ FramePerSecond = pygame.time.Clock()
 
 SCREEN = pygame.display.set_mode([LENGTH, HEIGHT])
 pygame.display.set_caption("Play")
-my_font = pygame.font.SysFont("arial", 40)
-
-#TODO:colour selection for each player
-#TODO:Aproject spawning for both players
-#TODO: Working Score System and Labeling
+score_font = pygame.font.SysFont("arial", 40)
+go_font = pygame.font.SysFont("arial", 200)
 
 
 class ArrowNote(pygame.sprite.Sprite):
 
-    def __init__(self, note_attrs, game_start_time):
+    def __init__(self, note_attrs):
         self.velocity = note_attrs['velocity']
         self.radius   = note_attrs['radius']
         self.color    = note_attrs['color']
         self.delay    = note_attrs['delay']
-        self.gst      = game_start_time
+        self.gst      = time.time()
         self.score    = 0
+        self.miss     = False
 
         super().__init__()
 
@@ -59,6 +57,10 @@ class ArrowNote(pygame.sprite.Sprite):
             else:
                 self.score += 50
 
+    def speed_rate(self, gametime):
+        increase_by = (time.time() - gametime) / 50000
+        self.velocity *= (1 + increase_by)
+
     def can_deploy(self):
         if time.time() - self.gst >= self.delay:
             return True
@@ -71,16 +73,26 @@ class ArrowNote(pygame.sprite.Sprite):
         SCREEN.blit(self.image, self.rect)
 
     def border_check(self):
-        if self.velocity < 0:
-            if self.pos[0] <= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
+        if self.velocity > 0:
+            if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS:
                 return False
             else:
                 return True
+        else:
+            if self.pos[0] <= LENGTH / 2 - WHEEL_RADIUS:
+                return False
+            else:
+                return True
+
+    def miss_check(self):
+        if not self.border_check():
+            self.miss = True
         elif self.velocity > 0:
-            if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS * self.velocity/abs(self.velocity):
-                return False
-            else:
-                return True
+            if self.pos[0] <= LENGTH / 2 - WHEEL_RADIUS:
+                self.miss = True
+        elif self.velocity < 0:
+            if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS:
+                self.miss = True
 
     def key_is_pressed(self):
         key_state = pygame.key.get_pressed()
@@ -113,6 +125,7 @@ class ArrowNote(pygame.sprite.Sprite):
         if self.border_check() and not self.key_is_pressed():
             self.move()
         else:
+            self.miss_check()
             self.kill()
 
 
@@ -135,39 +148,50 @@ class PlayerWheel(pygame.sprite.Sprite):
 
 default_note_attrs = {'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': 0}
 
-def main():
-    #starting time of game
-    start_time = time.time()
 
-    left_note  = ArrowNote({'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)}, start_time)
-    right_note = ArrowNote({'velocity': -10, 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)}, start_time)
+def main():
+    game_time = time.time()
+
+    left_note  = ArrowNote({'velocity': 10, 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)})
+    right_note = ArrowNote({'velocity': -10, 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)})
 
     target = PlayerWheel()
 
     # game loop
     while True:
-
-        score_display = my_font.render('Score: ' + str(left_note.score + right_note.score), True, 'white', 'black')
-        score_rect = score_display.get_rect()
-        score_rect.center = (LENGTH / 2, HEIGHT / 8)
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
-        SCREEN.fill('white')
-        target.update()
-        SCREEN.blit(score_display, score_rect)
+        print([left_note.miss, right_note.miss])
 
-        if left_note.can_deploy():
-            left_note.update()
-        if right_note.can_deploy():
-            right_note.update()
+        if not left_note.miss and not right_note.miss:
+            score_display = score_font.render('Score: ' + str(left_note.score + right_note.score), True, 'white', 'black')
+            score_rect = score_display.get_rect()
+            score_rect.center = (LENGTH / 2, HEIGHT / 8)
+
+            SCREEN.fill('white')
+            SCREEN.blit(score_display, score_rect)
+            target.update()
+
+            if left_note.can_deploy():
+                left_note.update()
+                left_note.speed_rate(game_time)
+
+            if right_note.can_deploy():
+                right_note.update()
+                right_note.speed_rate(game_time)
+        else:
+            game_over = go_font.render('GAMEOVER', True, 'white', 'black')
+            game_over_display = game_over.get_rect()
+            game_over_display.center = (LENGTH / 2, HEIGHT / 2)
+            SCREEN.blit(game_over, game_over_display)
 
         pygame.display.update()
 
         FramePerSecond.tick(FPS)
+
 
 
 if __name__ == '__main__':
