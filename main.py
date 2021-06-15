@@ -18,6 +18,11 @@ LENGTH = infoObject.current_w
 HEIGHT = infoObject.current_h
 WHEEL_RADIUS = 210
 
+BOTTOM_BOUND_Y = HEIGHT / 2 + WHEEL_RADIUS
+TOP_BOUND_Y = HEIGHT / 2 - WHEEL_RADIUS
+RIGHT_BOUND_X = LENGTH/2 + WHEEL_RADIUS
+LEFT_BOUND_X = LENGTH / 2 - WHEEL_RADIUS
+
 SCREEN = pygame.display.set_mode([LENGTH, HEIGHT])
 
 # global variables for note positions
@@ -66,17 +71,32 @@ class Note(pygame.sprite.Sprite):
             else:
                 self.pos = self.rect.center = BOTTOM
 
+    def in_target(self):
+
+        # for notes on the x-axis
+        if self.velocity[0] != 0:
+            if self.pos[0] > LEFT_BOUND_X and self.pos[0] < RIGHT_BOUND_X:
+                return True
+            else:
+                return False
+        # for notes on the y axis
+        else:
+            if self.pos[1] > TOP_BOUND_Y and self.pos[0] < BOTTOM_BOUND_Y:
+                return True
+            else:
+                return False
+
     def add_score(self):
         # rewards score based on how close the note is to the center of the target
         if self.velocity[0] != 0:
-            if self.pos[0] > LENGTH/2 - WHEEL_RADIUS and self.pos[0] < LENGTH/2 + WHEEL_RADIUS:
-                if self.pos[0] > LENGTH/2 - WHEEL_RADIUS/3 and self.pos[0] < LENGTH/2 + WHEEL_RADIUS/3:
+            if self.pos[0] > LEFT_BOUND_X and self.pos[0] < RIGHT_BOUND_X:
+                if self.pos[0] > LEFT_BOUND_X/3 and self.pos[0] < RIGHT_BOUND_X/3:
                     self.score += 100
                 else:
                     self.score += 50
         else:
-            if self.pos[1] < HEIGHT/2 + WHEEL_RADIUS and self.pos[1] > HEIGHT/2 - WHEEL_RADIUS:
-                if self.pos[1] < HEIGHT/2 + WHEEL_RADIUS/3 and self.pos[1] > HEIGHT - WHEEL_RADIUS/3:
+            if self.pos[1] < BOTTOM_BOUND_Y and self.pos[1] > TOP_BOUND_Y:
+                if self.pos[1] < BOTTOM_BOUND_Y/3 and self.pos[1] > TOP_BOUND_Y/3:
                     self.score += 100
                 else:
                     self.score += 50
@@ -108,24 +128,24 @@ class Note(pygame.sprite.Sprite):
         # for notes on the x axis
         if self.velocity[0] != 0:
             if self.velocity[0] > 0:
-                if self.pos[0] >= LENGTH / 2 + WHEEL_RADIUS:
+                if self.pos[0] >= RIGHT_BOUND_X:
                     return False
                 else:
                     return True
             else:
-                if self.pos[0] <= LENGTH / 2 - WHEEL_RADIUS:
+                if self.pos[0] <= LEFT_BOUND_X:
                     return False
                 else:
                     return True
         # for notes on the y axis
         else:
             if self.velocity[1] > 0:
-                if self.pos[1] >= HEIGHT / 2 + WHEEL_RADIUS:
+                if self.pos[1] >= BOTTOM_BOUND_Y:
                     return False
                 else:
                     return True
             else:
-                if self.pos[1] <= HEIGHT / 2 - WHEEL_RADIUS:
+                if self.pos[1] <= TOP_BOUND_Y:
                     return False
                 else:
                     return True
@@ -139,17 +159,17 @@ class Note(pygame.sprite.Sprite):
         # missed when the note disappears outside the target
         elif self.velocity[0] != 0:
             if self.velocity[0] > 0:
-                if self.pos[0] <= LENGTH / 2 - WHEEL_RADIUS:
+                if self.pos[0] <= LEFT_BOUND_X:
                     self.miss = True
             else:
-                if self.pos[0] >= LENGTH/2 + WHEEL_RADIUS:
+                if self.pos[0] >= RIGHT_BOUND_X:
                     self.miss = True
         else:
             if self.velocity[1] > 0:
-                if self.pos[1] <= HEIGHT / 2 - WHEEL_RADIUS:
+                if self.pos[1] <= TOP_BOUND_Y:
                     self.miss = True
             else:
-                if self.pos[1] >= HEIGHT / 2 + WHEEL_RADIUS:
+                if self.pos[1] >= BOTTOM_BOUND_Y:
                     self.miss = True
 
     # checks if a key is pressed
@@ -236,8 +256,22 @@ class PlayerWheel(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, 'pink', self.rect.center, WHEEL_RADIUS)
         self.rect.center = self.pos
 
-    # shows target
-    def update(self):
+    #shows target
+    def update(self, color):
+
+        #recreates the sprite
+        super().__init__()
+        self.image = pygame.Surface([WHEEL_RADIUS * 2, WHEEL_RADIUS * 2])
+        self.rect = self.image.get_rect()
+        self.image.fill('white')
+        self.image.set_colorkey('white')
+        pygame.draw.circle(self.image, color, self.rect.center, WHEEL_RADIUS)
+
+        # for displaying an outer ring
+        if color == 'red':
+            pygame.draw.circle(self.image, 'pink', self.rect.center, WHEEL_RADIUS-20)
+        self.rect.center = self.pos
+
         SCREEN.blit(self.image, self.rect)
 
 
@@ -293,13 +327,14 @@ def main():
     seldiff_button = MenuButton({'pos': [LENGTH/2, HEIGHT * 3/4], 'txt': 'SELECT DIFFICULTY', 'color': 'black'})
 
     # creating the notes; randomized delay
-    left_note  = Note({'velocity': [10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)})
+    left_note  = Note({'velocity': [10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'blue', 'delay': random.randint(0, 3)})
     right_note = Note({'velocity': [-10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)})
     top_note = Note({'velocity': [0, 10], 'radius': WHEEL_RADIUS/3, 'color': 'purple', 'delay': random.randint(0, 3)})
     bottom_note = Note({'velocity': [0, -10], 'radius': WHEEL_RADIUS/3, 'color': 'orange', 'delay': random.randint(0, 3)})
 
     # create center target
     target = PlayerWheel()
+    # ring = NoteSignal()
 
     # sets game start time for note delays
     game_time = time.time()
@@ -332,8 +367,16 @@ def main():
                 score_rect.center = (LENGTH / 2, HEIGHT / 8)
                 SCREEN.blit(score_display, score_rect)
 
-                # display her target
-                target.update()
+                # display the target
+                # displays an outer ring if a note is within target for player ease
+                collide_right = target.rect.colliderect(right_note.rect)
+                collide_left = target.rect.colliderect(left_note.rect)
+                collide_top = target.rect.colliderect(top_note.rect)
+                collide_bottom = target.rect.colliderect(bottom_note.rect)
+                if collide_right or collide_left or collide_bottom or collide_top:
+                    target.update('red')
+                else:
+                    target.update('pink')
 
                 # displaying notes if their delay is reached
                 # updates to check not for misses and moves
@@ -362,7 +405,7 @@ def main():
                 pygame.display.set_caption("Gameover")
 
                 # initializes game over text
-                #displays game over text
+                # displays game over text
                 go_font = pygame.font.SysFont("arial", 200)
                 game_over = go_font.render('GAMEOVER', True, 'white', 'black')
                 game_over_display = game_over.get_rect()
