@@ -271,8 +271,15 @@ class MenuButton():
             SCREEN.blit(self.button_text, self.button_display)
 
 
+# default easy difficulty
+difficulty = 0
+diff = 'EASY'
+
+
 # main function for gameplay
 def main():
+    global diff
+    global difficulty
 
     # initializes and plays the music from the mp3 file
     pygame.mixer.init()
@@ -290,10 +297,6 @@ def main():
     right_note = Note({'velocity': [-10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)})
     top_note = Note({'velocity': [0, 10], 'radius': WHEEL_RADIUS/3, 'color': 'purple', 'delay': random.randint(0, 3)})
     bottom_note = Note({'velocity': [0, -10], 'radius': WHEEL_RADIUS/3, 'color': 'orange', 'delay': random.randint(0, 3)})
-
-    # default easy difficulty
-    difficulty = 0
-    diff = 'EASY'
 
     # create center target
     target = PlayerWheel()
@@ -333,6 +336,8 @@ def main():
                 target.update()
 
                 # displaying notes if their delay is reached
+                # updates to check not for misses and moves
+                # increases speed of note
                 if left_note.can_deploy():
                     left_note.update()
                     left_note.speed_rate(game_time)
@@ -351,9 +356,13 @@ def main():
                         bottom_note.update()
                         bottom_note.speed_rate(game_time)
 
+            # shows game over screen when any one note is missed
             else:
+                # displays game over in app caption
                 pygame.display.set_caption("Gameover")
 
+                # initializes game over text
+                #displays game over text
                 go_font = pygame.font.SysFont("arial", 200)
                 game_over = go_font.render('GAMEOVER', True, 'white', 'black')
                 game_over_display = game_over.get_rect()
@@ -362,21 +371,18 @@ def main():
 
                 SCREEN.blit(score_display, score_rect)
 
+                # creates back button
                 back_button = MenuButton({'pos': [LENGTH / 2, HEIGHT * 2/ 3], 'txt': 'BACK', 'color': 'RED'})
                 back_button.update()
                 back_button.is_clicked()
 
+                # resets back to the main menu
                 if back_button.pressed:
-                    start_button.pressed = False
-                    howto_button.pressed = False
 
-                    left_note.reset()
-                    right_note.reset()
-                    top_note.reset()
-                    bottom_note.reset()
-
+                    # calling main() helps reset game_time so note speeding up resets per game
                     main()
 
+        #displays how to text
         elif howto_button.pressed:
             howto_welcome = 'Welcome!'
             howto_about = 'This game is a simple, reaction-based game based on circles.'
@@ -390,12 +396,14 @@ def main():
 
             howto_font = pygame.font.SysFont("arial", 35)
 
+            # quick function for showing all the howto text
             def show_text(text, h):
                 howto_display = howto_font.render(text, True, 'black', 'white')
                 howto_rect = howto_display.get_rect()
                 howto_rect.center = (LENGTH / 2, h)
                 SCREEN.blit(howto_display, howto_rect)
 
+            # shows howto text
             show_text(howto_welcome, 100)
             show_text(howto_about, 200)
             show_text(howto_goal, 300)
@@ -406,20 +414,27 @@ def main():
             show_text(howto_speed, 800)
             show_text(howto_prompt, 900)
 
+            # creates and shows the back button
             back_button = MenuButton({'pos': [LENGTH / 2, 1000], 'txt': 'BACK', 'color': 'black'})
             back_button.update()
             back_button.is_clicked()
 
+            # reset back to main menu
             if back_button.pressed:
                 main()
 
+        # selecting difficulty menu
         elif seldiff_button.pressed:
+            # display selecting difficulty in app caption
             pygame.display.set_caption("Selecting Difficulty")
 
+            # displaying th different difficulty buttons
             easy_button = MenuButton({'pos': [LENGTH / 2, 400], 'txt': 'EASY', 'color': 'green'})
             med_button = MenuButton({'pos': [LENGTH / 2, 600], 'txt': 'MEDIUM', 'color': 'orange'})
             hard_button = MenuButton({'pos': [LENGTH /2, 800], 'txt': 'HARD', 'color': 'red'})
 
+            # select difficulty for each button
+            # reassign a global variables so that difficulty will carry over even when the game is reset after game over
             easy_button.update()
             easy_button.is_clicked()
             if easy_button.pressed:
@@ -438,32 +453,33 @@ def main():
                 difficulty = 2
                 diff = 'HARD'
 
+            # creates and shows back button
             back_button = MenuButton({'pos': [LENGTH / 2, HEIGHT / 8], 'txt': 'BACK', 'color': 'black'})
             back_button.update()
             back_button.is_clicked()
 
+            # text for current difficulty selection caption
             font = pygame.font.SysFont("arial", 35)
 
             diff_display = font.render('Your current difficulty is ' + diff + '. ' + str(difficulty + 2) + ' notes will appear on screen at a time.', True, 'black', 'white')
             diff_rect = diff_display.get_rect()
-            diff_rect.center = (LENGTH / 2, 1200)
+            diff_rect.center = (LENGTH / 2, 1000)
             SCREEN.blit(diff_display, diff_rect)
 
             about_display = font.render('Increasing difficulty will increase the number of notes at a time.', True, 'black', 'white')
             about_rect = about_display.get_rect()
-            about_rect.center = (LENGTH / 2, 1300)
+            about_rect.center = (LENGTH / 2, 1200)
             SCREEN.blit(about_display, about_rect)
 
+            # reset menu to main menu
             if back_button.pressed:
-                easy_button.pressed = False
-                med_button.pressed = False
-                hard_button.pressed = False
+                main()
 
-                seldiff_button.pressed = False
-
+        # display main menu when no buttons are in the 'is clicked' state
         else:
             pygame.display.set_caption("Main Menu")
 
+            # displays and checks the clicked state of each button
             start_button.update()
             start_button.is_clicked()
 
@@ -473,10 +489,13 @@ def main():
             seldiff_button.update()
             seldiff_button.is_clicked()
 
+        # updates pygame display
         pygame.display.update()
 
+        # ticks a frame for the game loop
         FramePerSecond.tick(FPS)
 
 
+#calls main function to run game
 if __name__ == '__main__':
     main()
