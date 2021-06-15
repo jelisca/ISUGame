@@ -11,24 +11,30 @@ import random
 # initializes display mode
 pygame.init()
 
-LENGTH = 2000
-HEIGHT = 1500
+# global variables for object sizes
+infoObject = pygame.display.Info()
+
+LENGTH = infoObject.current_w
+HEIGHT = infoObject.current_h
 WHEEL_RADIUS = 210
 
+SCREEN = pygame.display.set_mode([LENGTH, HEIGHT])
+
+# global variables for note positions
 LEFT = [0, HEIGHT/2]
 RIGHT = [LENGTH, HEIGHT/2]
 TOP = [LENGTH/2, 0]
 BOTTOM = [LENGTH/2, HEIGHT]
 
+# global variables for frame ticks
 FPS = 40
 FramePerSecond = pygame.time.Clock()
 
-SCREEN = pygame.display.set_mode([LENGTH, HEIGHT])
 
-# TODO: Fix speed up rate resetting
-
+# class for note objects
 class Note(pygame.sprite.Sprite):
 
+    # initialize using a dictionary of the attributes
     def __init__(self, note_attrs):
         self.velocity = note_attrs['velocity']
         self.radius   = note_attrs['radius']
@@ -38,13 +44,17 @@ class Note(pygame.sprite.Sprite):
         self.score    = 0
         self.miss     = False
 
+        # initializes the sprite
         super().__init__()
 
+        # creates the sprite
         self.image = pygame.Surface([self.radius*2, self.radius*2])
         self.rect  = self.image.get_rect()
         self.image.fill('white')
         self.image.set_colorkey('white')
         pygame.draw.circle(self.image, self.color, self.rect.center, self.radius)
+
+        # determines the starting position of the note by the velcity vector
         if self.velocity[0] != 0:
             if self.velocity[0] > 0:
                 self.pos = self.rect.center = LEFT
@@ -57,6 +67,7 @@ class Note(pygame.sprite.Sprite):
                 self.pos = self.rect.center = BOTTOM
 
     def add_score(self):
+        # rewards score based on how close the note is to the center of the target
         if self.velocity[0] != 0:
             if self.pos[0] > LENGTH/2 - WHEEL_RADIUS and self.pos[0] < LENGTH/2 + WHEEL_RADIUS:
                 if self.pos[0] > LENGTH/2 - WHEEL_RADIUS/3 and self.pos[0] < LENGTH/2 + WHEEL_RADIUS/3:
@@ -71,6 +82,7 @@ class Note(pygame.sprite.Sprite):
                     self.score += 50
 
     def speed_rate(self, gametime):
+        # increases velocity of the note by how much time has passed since the game started
         increase_by = (time.time() - gametime) / 50000
         if self.velocity[0] != 0:
             self.velocity[0] *= 1 + increase_by
@@ -78,17 +90,22 @@ class Note(pygame.sprite.Sprite):
             self.velocity[1] *= 1 + increase_by
 
     def can_deploy(self):
+        # for the delay of the note
         if time.time() - self.gst >= self.delay:
             return True
         else:
             return False
 
     def move(self):
+        # makes the note move by the velocity for a frame
         self.rect.move_ip(self.velocity)
         self.pos = self.rect.center
         SCREEN.blit(self.image, self.rect)
 
     def border_check(self):
+        # checks if the note has passed a border depending on which side it starts on
+
+        # for notes on the x axis
         if self.velocity[0] != 0:
             if self.velocity[0] > 0:
                 if self.pos[0] >= LENGTH / 2 + WHEEL_RADIUS:
@@ -100,6 +117,7 @@ class Note(pygame.sprite.Sprite):
                     return False
                 else:
                     return True
+        # for notes on the y axis
         else:
             if self.velocity[1] > 0:
                 if self.pos[1] >= HEIGHT / 2 + WHEEL_RADIUS:
@@ -112,11 +130,14 @@ class Note(pygame.sprite.Sprite):
                 else:
                     return True
 
+    # checks if the player made a miss
     def miss_check(self):
+        #missed when the note passes the target
         if not self.border_check():
             self.miss = True
 
-        if self.velocity[0] != 0:
+        # missed when the note disappears outside the target
+        elif self.velocity[0] != 0:
             if self.velocity[0] > 0:
                 if self.pos[0] <= LENGTH / 2 - WHEEL_RADIUS:
                     self.miss = True
@@ -131,8 +152,12 @@ class Note(pygame.sprite.Sprite):
                 if self.pos[1] >= HEIGHT / 2 + WHEEL_RADIUS:
                     self.miss = True
 
+    # checks if a key is pressed
     def key_is_pressed(self):
+
         key_state = pygame.key.get_pressed()
+        # checks the key for a specific side
+        # x-axis notes
         if self.velocity[0] != 0:
             if self.velocity[0] > 0:
                 if key_state[pygame.K_a] or key_state[pygame.K_LEFT]:
@@ -144,6 +169,7 @@ class Note(pygame.sprite.Sprite):
                     return True
                 else:
                     return False
+        # y-axis notes
         else:
             if self.velocity[1] > 0:
                 if key_state[pygame.K_w] or key_state[pygame.K_UP]:
@@ -158,7 +184,7 @@ class Note(pygame.sprite.Sprite):
 
     def kill(self):
         # check ball velocity to determine key to use for killing
-        # after killing, reset self.gst'
+        # after killing, reset self.gst
         self.add_score()
         if self.velocity[0] != 0:
             if self.velocity[0] > 0:
@@ -179,6 +205,7 @@ class Note(pygame.sprite.Sprite):
                 self.delay = random.randint(0, 3)
                 self.gst = time.time()
 
+    # moves and checks for misses to disappear
     def update(self):
         # after killed OR border crossed, move note back to original position, and set with new delay
         if self.border_check() and not self.key_is_pressed():
@@ -187,14 +214,17 @@ class Note(pygame.sprite.Sprite):
             self.miss_check()
             self.kill()
 
+    # reset note attrs for gameover
     def reset(self):
+        self.miss = False
         self.kill()
         self.score = 0
-        self.miss = False
 
 
+# creates the central target
 class PlayerWheel(pygame.sprite.Sprite):
 
+    # initialize target
     def __init__(self):
         self.pos = [LENGTH/2, HEIGHT/2]
 
@@ -206,13 +236,16 @@ class PlayerWheel(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, 'pink', self.rect.center, WHEEL_RADIUS)
         self.rect.center = self.pos
 
+    # shows target
     def update(self):
         SCREEN.blit(self.image, self.rect)
 
 
+# class for menu buttons
 class MenuButton():
     pressed = False
 
+    # initializes menu button text
     def __init__(self, button_attrs):
         self.position = button_attrs['pos']
         self.text = button_attrs['txt']
@@ -224,6 +257,7 @@ class MenuButton():
         self.button_display = self.button_text.get_rect()
         self.button_display.center = self.position
 
+    # checks if the button is clicked
     def is_clicked(self):
         if not self.pressed:
             x, y = pygame.mouse.get_pos()
@@ -231,40 +265,62 @@ class MenuButton():
                 if self.position[0] - LENGTH/2 < x < self.position[0] + LENGTH/2 and self.position[1] - 30 < y < self.position[1] + 30:
                     self.pressed = True
 
+    # shows button
     def update(self):
         if not self.pressed:
             SCREEN.blit(self.button_text, self.button_display)
 
-def main():
-    game_time = time.time()
 
+# main function for gameplay
+def main():
+
+    # initializes and plays the music from the mp3 file
+    pygame.mixer.init()
+    pygame.mixer.music.load("Coconut_Mall.ogg")
+    pygame.mixer.music.set_volume(0.4)
+    pygame.mixer.music.play(-1)
+
+    # creates buttons for the main menu
     start_button = MenuButton({'pos': [LENGTH/2, HEIGHT/2], 'txt': 'START', 'color': 'black'})
     howto_button = MenuButton({'pos': [LENGTH/2, HEIGHT/4], 'txt': 'HOW TO PLAY', 'color': 'blue'})
     seldiff_button = MenuButton({'pos': [LENGTH/2, HEIGHT * 3/4], 'txt': 'SELECT DIFFICULTY', 'color': 'black'})
 
+    # creating the notes; randomized delay
     left_note  = Note({'velocity': [10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'red', 'delay': random.randint(0, 3)})
     right_note = Note({'velocity': [-10, 0], 'radius': WHEEL_RADIUS/3, 'color': 'green', 'delay': random.randint(0, 3)})
     top_note = Note({'velocity': [0, 10], 'radius': WHEEL_RADIUS/3, 'color': 'purple', 'delay': random.randint(0, 3)})
     bottom_note = Note({'velocity': [0, -10], 'radius': WHEEL_RADIUS/3, 'color': 'orange', 'delay': random.randint(0, 3)})
 
+    # default easy difficulty
     difficulty = 0
+    diff = 'EASY'
 
+    # create center target
     target = PlayerWheel()
+
+    # sets game start time for note delays
+    game_time = time.time()
 
     # game loop
     while True:
+
+        # for if the user exits the game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
 
+        # screen resetting in the loop
         SCREEN.fill('white')
 
+        # starts the game when the start button is pressed
         if start_button.pressed:
 
+            # continues the game if no notes are missed
             if not left_note.miss and not right_note.miss and not top_note.miss and not bottom_note.miss:
                 pygame.display.set_caption("Playing")
 
+                # displaying the score
                 score = str(left_note.score + right_note.score + top_note.score + bottom_note.score)
 
                 score_font = pygame.font.SysFont("arial", 40)
@@ -273,8 +329,10 @@ def main():
                 score_rect.center = (LENGTH / 2, HEIGHT / 8)
                 SCREEN.blit(score_display, score_rect)
 
+                # display her target
                 target.update()
 
+                # displaying notes if their delay is reached
                 if left_note.can_deploy():
                     left_note.update()
                     left_note.speed_rate(game_time)
@@ -317,13 +375,14 @@ def main():
                     top_note.reset()
                     bottom_note.reset()
 
-                    game_time = time.time()
+                    main()
 
         elif howto_button.pressed:
             howto_welcome = 'Welcome!'
             howto_about = 'This game is a simple, reaction-based game based on circles.'
             howto_goal = 'The goal is to make approaching notes disappear in the central target.'
             howto_controls = 'To make notes disappear, use the WASD or arrow keys to the corresponding side the note comes from!'
+            howto_ex = 'For example, if a note is coming from the left of the target,press the "A" or LEFT arrow key to successfullly make it disappear.'
             howto_score = 'Making notes disappear closer to the center of the target will award more points to your score.'
             howto_gameover = 'Make sure to not over or under estimate the note! If the note disappears before or after the target it will be a game over.'
             howto_speed = 'The longer you play a single game, the faster the notes will move.'
@@ -341,6 +400,7 @@ def main():
             show_text(howto_about, 200)
             show_text(howto_goal, 300)
             show_text(howto_controls, 400)
+            show_text(howto_ex, 500)
             show_text(howto_score, 600)
             show_text(howto_gameover, 700)
             show_text(howto_speed, 800)
@@ -351,7 +411,7 @@ def main():
             back_button.is_clicked()
 
             if back_button.pressed:
-                howto_button.pressed = False
+                main()
 
         elif seldiff_button.pressed:
             pygame.display.set_caption("Selecting Difficulty")
@@ -363,20 +423,20 @@ def main():
             easy_button.update()
             easy_button.is_clicked()
             if easy_button.pressed:
-                pygame.display.set_caption("Easy Mode Selected")
                 difficulty = 0
+                diff = 'EASY'
 
             med_button.update()
             med_button.is_clicked()
             if med_button.pressed:
-                pygame.display.set_caption("Medium Mode Selected")
                 difficulty = 1
+                diff = 'MEDIUM'
 
             hard_button.update()
             hard_button.is_clicked()
             if hard_button.pressed:
-                pygame.display.set_caption("Hard Mode Selected")
                 difficulty = 2
+                diff = 'HARD'
 
             back_button = MenuButton({'pos': [LENGTH / 2, HEIGHT / 8], 'txt': 'BACK', 'color': 'black'})
             back_button.update()
@@ -384,10 +444,15 @@ def main():
 
             font = pygame.font.SysFont("arial", 35)
 
-            howto_display = font.render('Increasing difficulty will increase the number of notes at a time.', True, 'black', 'white')
-            howto_rect = howto_display.get_rect()
-            howto_rect.center = (LENGTH / 2, 1300)
-            SCREEN.blit(howto_display, howto_rect)
+            diff_display = font.render('Your current difficulty is ' + diff + '. ' + str(difficulty + 2) + ' notes will appear on screen at a time.', True, 'black', 'white')
+            diff_rect = diff_display.get_rect()
+            diff_rect.center = (LENGTH / 2, 1200)
+            SCREEN.blit(diff_display, diff_rect)
+
+            about_display = font.render('Increasing difficulty will increase the number of notes at a time.', True, 'black', 'white')
+            about_rect = about_display.get_rect()
+            about_rect.center = (LENGTH / 2, 1300)
+            SCREEN.blit(about_display, about_rect)
 
             if back_button.pressed:
                 easy_button.pressed = False
